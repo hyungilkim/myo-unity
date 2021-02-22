@@ -20,6 +20,7 @@ using XDirection = Thalmic.Myo.XDirection;
 using VibrationType = Thalmic.Myo.VibrationType;
 using Pose = Thalmic.Myo.Pose;
 using UnlockType = Thalmic.Myo.UnlockType;
+using StreamEmg = Thalmic.Myo.StreamEmg;
 
 // Represents a Myo armband. Myo's orientation is made available through transform.localRotation, and other properties
 // like the current pose are provided explicitly below. All spatial data about Myo is provided following Unity
@@ -52,6 +53,10 @@ public class ThalmicMyo : MonoBehaviour {
     // following Unity coordinate system conventions.
     public Vector3 gyroscope;
 
+    public Thalmic.Myo.Result streamEmg;
+    
+    public sbyte[] emg;
+
     // True if and only if this Myo armband has paired successfully, at which point it will provide data and a
     // connection with it will be maintained when possible.
     public bool isPaired {
@@ -79,6 +84,9 @@ public class ThalmicMyo : MonoBehaviour {
     }
 
     void Start() {
+        if (isPaired) {
+            streamEmg = _myo.SetStreamEmg (_myoStreamEmg);
+        }
     }
 
     void Update() {
@@ -95,6 +103,10 @@ public class ThalmicMyo : MonoBehaviour {
             if (_myoGyroscope != null) {
                 gyroscope = new Vector3(_myoGyroscope.Y, _myoGyroscope.Z, -_myoGyroscope.X);
             }
+            if (isPaired && streamEmg == Thalmic.Myo.Result.Success) {
+                emg = _myo.emgData;
+            }
+
             pose = _myoPose;
             unlocked = _myoUnlocked;
         }
@@ -131,6 +143,12 @@ public class ThalmicMyo : MonoBehaviour {
     void myo_OnGyroscopeData(object sender, Thalmic.Myo.GyroscopeDataEventArgs e) {
         lock (_lock) {
             _myoGyroscope = e.Gyroscope;
+        }
+    }
+
+    void myo_OnEmgData(object sender, Thalmic.Myo.EmgDataEventArgs e) {
+        lock (_lock) {
+            _myoEmg = e.Emg;
         }
     }
 
@@ -187,8 +205,10 @@ public class ThalmicMyo : MonoBehaviour {
     private Thalmic.Myo.Quaternion _myoQuaternion = null;
     private Thalmic.Myo.Vector3 _myoAccelerometer = null;
     private Thalmic.Myo.Vector3 _myoGyroscope = null;
+    private sbyte[] _myoEmg = new sbyte[8];
     private Pose _myoPose = Pose.Unknown;
     private bool _myoUnlocked = false;
+    private StreamEmg _myoStreamEmg = StreamEmg.Enabled;
 
     private Thalmic.Myo.Myo _myo;
 }
